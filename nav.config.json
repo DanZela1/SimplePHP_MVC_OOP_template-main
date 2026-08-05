@@ -16,6 +16,23 @@
       "id":"Menu_PaymentCheckout",
       "nav_url": "index.php?page=Checkout_Checkout",
       "nav_label": "Carretilla de Compra"
+    },
+    {
+    "id": "Menu_Catalogo",
+    "nav_url": "index.php?page=Checkout_Catalogo",
+    "nav_label": "Catálogo"
+    },
+    {
+      "id": "Menu_Carretilla",
+      "nav_url": "index.php?page=Checkout_Carretilla",
+      "nav_label": "Mi Carrito"
+    },
+    {
+      "id":"Menu_PaymentCheckout",
+      "nav_url": "index.php?page=Checkout_Checkout",
+      "nav_label": "Carretilla de Compra"
     }
+
+
   ]
 }
