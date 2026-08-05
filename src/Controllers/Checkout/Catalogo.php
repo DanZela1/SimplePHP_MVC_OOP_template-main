@@ -1,57 +1,41 @@
 <?php
-/**
- * PHP Version 7.2
- * Checkout
- *
- * @category Controller
- * @package  Controllers\Checkout
- * @author   Orlando J Betancourth <orlando.betancourth@gmail.com>
- * @license  Comercial http://
- * @version  CVS:1.0.0
- * @link     http://url.com
- */
- namespace Controllers\Checkout;
+namespace Controllers\Checkout;
 
-// ---------------------------------------------------------------
-// Sección de imports
-// ---------------------------------------------------------------
 use Controllers\PrivateController;
 
-/**
- * Catalogo
- *
- * @category Public
- * @package  Controllers\Checkout;
- * @author   Orlando J Betancourth <orlando.betancourth@gmail.com>
- * @license  MIT http://
- * @link     http://
- */
 class Catalogo extends PrivateController
 {
-    /**
-     * Runs the controller
-     *
-     * @return void
-     */
-    public function run():void
+    public function run(): void
     {
-        // code
-        $producto = \Dao\Productos::getAll();
-        $carretilla = \Dao\Carretilla::getAll(\Utilities\Security::getUserId());
+        if ($this->isPostBack()) {
+            $productId = (int)($_POST["productId"] ?? 0);
+            $cantidad = max(1, (int)($_POST["cantidad"] ?? 1));
 
-        $carrAssoc = array();
-        foreach($carretilla as $carr) {
-            $carrAssoc[$carr["prdcod"]] = $carr;
-        }
+            $disponibles = \Dao\Cart\Cart::getProductoDisponible($productId);
+            $stockDisponible = isset($disponibles[$productId])
+                ? $disponibles[$productId]["productStock"] : 0;
 
-        foreach($producto as $prod) {
-            if (isset($carrAssoc[$prod["prdcod"]])) {
-                $prod["enCarretilla"] = true;
+            if ($cantidad <= $stockDisponible) {
+                \Dao\Cart\Cart::addToCart(
+                    \Utilities\Security::getUserId(),
+                    $productId,
+                    $cantidad,
+                    $disponibles[$productId]["productPrice"]
+                );
+                $_SESSION["mensaje"] = "Producto agregado al carrito.";
             } else {
-                $prod["enCarretilla"] = false;
+                $_SESSION["mensaje"] = "No hay suficiente stock disponible.";
             }
+
+            \Utilities\Site::redirectTo("index.php?page=Checkout_Catalogo");
         }
-        \Views\Renderer::render("abc", array("productos" => $producto));
+
+        $productos = \Dao\Cart\Cart::getProductosDisponibles();
+
+        \Views\Renderer::render("catalogo", array(
+            "productos" => array_values($productos)
+        ));
+        unset($_SESSION["mensaje"]);
     }
 }
 
