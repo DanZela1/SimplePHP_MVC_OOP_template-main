@@ -73,4 +73,3 @@ class Carrito extends PublicController
     }
   }
 }
-?>

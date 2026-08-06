@@ -55,7 +55,6 @@ class PayPalRestApi
         ));
 
         $response = curl_exec($curl);
-        curl_close($curl);
         $response = json_decode($response);
         $this->_token = $response->access_token;
         $this->_tokenExpiration = time() + $response->expires_in;
@@ -85,7 +84,6 @@ class PayPalRestApi
         ));
 
         $response = curl_exec($curl);
-        curl_close($curl);
         return json_decode($response);
     }
     public function captureOrder($orderId)
@@ -107,7 +105,6 @@ class PayPalRestApi
         ));
 
         $response = curl_exec($curl);
-        curl_close($curl);
         return json_decode($response);
     }
 }

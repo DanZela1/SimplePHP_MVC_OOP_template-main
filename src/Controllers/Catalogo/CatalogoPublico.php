@@ -59,4 +59,3 @@ class CatalogoPublico extends PublicController
     }
   }
 }
-?>
