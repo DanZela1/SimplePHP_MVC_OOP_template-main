@@ -169,5 +169,9 @@ class CarritoManager
     }
     return $resultado;
   }
+  public static function getTasaImpuesto(): float
+{
+    return self::TASA_IMPUESTO;
+}
 }
 ?>
