@@ -56,6 +56,11 @@ class PayPalRestApi
 
         $response = curl_exec($curl);
         $response = json_decode($response);
+
+        if (!isset($response->access_token)) {
+            throw new \Exception("No se pudo obtener el token de acceso de PayPal: " . json_encode($response));
+        }
+
         $this->_token = $response->access_token;
         $this->_tokenExpiration = time() + $response->expires_in;
         $this->_tokenType = $response->token_type;
@@ -88,6 +93,16 @@ class PayPalRestApi
     }
     public function captureOrder($orderId)
     {
+        $headers = array(
+            "Content-Type: application/json",
+            "Authorization: Bearer " . $this->getAccessToken()
+        );
+
+        $mockCode = \Utilities\Context::getContextByKey("PAYPAL_MOCK_DECLINE");
+        if (!empty($mockCode)) {
+            $headers[] = "PayPal-Mock-Response: " . json_encode(["mock_application_codes" => $mockCode]);
+        }
+
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_URL => $this->_baseUrl . "/v2/checkout/orders/" . $orderId . "/capture",
@@ -98,10 +113,7 @@ class PayPalRestApi
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_HTTPHEADER => array(
-                "Content-Type: application/json",
-                "Authorization: Bearer " . $this->getAccessToken()
-            ),
+            CURLOPT_HTTPHEADER => $headers,
         ));
 
         $response = curl_exec($curl);
