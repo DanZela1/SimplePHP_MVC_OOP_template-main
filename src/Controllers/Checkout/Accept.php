@@ -18,6 +18,20 @@ class Accept extends PublicController
             );
             $result = $PayPalRestApi->captureOrder($session_token);
             $dataview["orderjson"] = json_encode($result, JSON_PRETTY_PRINT);
+
+            if (isset($result->status) && $result->status === "COMPLETED") {
+                $capture = $result->purchase_units[0]->payments->captures[0] ?? null;
+
+                \Dao\TransaccionDao::insertar(array(
+                    "paypal_order_id"   => $result->id ?? "",
+                    "paypal_capture_id" => $capture->id ?? "",
+                    "monto"             => $capture->amount->value ?? 0,
+                    "moneda"            => $capture->amount->currency_code ?? "USD",
+                    "estado"            => $result->status ?? "",
+                    "payer_email"       => $result->payer->email_address ?? "",
+                    "fecha_transaccion" => date("Y-m-d H:i:s"),
+                ));
+            }
         } else {
             $dataview["orderjson"] = "No Order Available!!!";
         }
