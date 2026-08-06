@@ -3,13 +3,14 @@
 namespace Controllers\Checkout;
 
 use Controllers\PublicController;
+
 class Error extends PublicController
 {
     public function run(): void
     {
-        echo "error";
-        die();
+        $viewData = array(
+            "mensaje" => "Hubo un problema al procesar tu pago."
+        );
+        \Views\Renderer::render("paypal/error", $viewData);
     }
 }
-
-?>
