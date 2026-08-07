@@ -18,13 +18,13 @@
       "nav_label": "Carretilla de Compra"
     },
     {
-    "id": "Menu_Catalogo",
-    "nav_url": "index.php?page=Checkout_Catalogo",
-    "nav_label": "Catálogo"
+      "id": "Menu_Catalogo",
+      "nav_url": "index.php?page=Catalogo_CatalogoPublico",
+      "nav_label": "Catálogo"
     },
     {
       "id": "Menu_Carretilla",
-      "nav_url": "index.php?page=Checkout_Carretilla",
+      "nav_url": "index.php?page=Catalogo_Carrito",
       "nav_label": "Mi Carrito"
     },
     {
