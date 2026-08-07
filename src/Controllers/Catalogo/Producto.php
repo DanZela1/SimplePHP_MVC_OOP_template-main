@@ -2,206 +2,133 @@
 
 namespace Controllers\Catalogo;
 
-use Controllers\PublicController;
+use Controllers\PrivateController;
+use Utilities\Context;
+use Utilities\Paging;
+use Dao\Catalogo\Productos as DaoProductos;
+use Dao\Catalogo\Categorias as DaoCategorias;
 use Views\Renderer;
-use Dao\Catalogo\Productos as ProductosDao;
-use Dao\Catalogo\Categorias as CategoriasDao;
-use Utilities\Site;
-use Utilities\Validators;
 
-class Producto extends PublicController
+class Productos extends PrivateController
 {
+  private $partialNombre = "";
+  private $idCategoria = 0;
+  private $disponible = "";
+  private $orderBy = "";
+  private $orderDescending = false;
+  private $pageNumber = 1;
+  private $itemsPerPage = 10;
   private $viewData = [];
-  private $mode = "DSP";
-  private $modeDescriptions = [
-    "DSP" => "Detalle de %s %s",
-    "INS" => "Nuevo Producto",
-    "UPD" => "Editar %s %s",
-    "DEL" => "Eliminar %s %s"
-  ];
-  private $readonly = "";
-  private $showCommitBtn = true;
-  private $producto = [
-    "idProducto" => 0,
-    "idCategoria" => 0,
-    "nombre" => "",
-    "descripcion" => "",
-    "precio" => 0,
-    "stock" => 0,
-    "disponible" => "ACT",
-    "imagenUrl" => ""
-  ];
-  private $producto_xss_token = "";
+  private $productos = [];
+  private $productosCount = 0;
+  private $pages = 0;
 
   public function run(): void
   {
-    try {
-      $this->getData();
-      if ($this->isPostBack()) {
-        if ($this->validateData()) {
-          $this->handlePostAction();
-        }
-      }
-      $this->setViewData();
-      Renderer::render("Catalogo/producto", $this->viewData);
-    } catch (\Exception $ex) {
-      Site::redirectToWithMsg(
-        "index.php?page=Catalogo_Productos",
-        $ex->getMessage()
-      );
-    }
-  }
-
-  private function getData()
-  {
-    $this->mode = $_GET["mode"] ?? "NOF";
-    if (isset($this->modeDescriptions[$this->mode])) {
-      $this->readonly = $this->mode === "DEL" ? "readonly" : "";
-      $this->showCommitBtn = $this->mode !== "DSP";
-      if ($this->mode !== "INS") {
-        $this->producto = ProductosDao::getProductoById(intval($_GET["idProducto"]));
-        if (!$this->producto) {
-          throw new \Exception("No se encontró el Producto", 1);
-        }
-      }
-    } else {
-      throw new \Exception("Formulario cargado en modalidad invalida", 1);
-    }
-  }
-
-  private function validateData()
-  {
-    $errors = [];
-    $this->producto_xss_token = $_POST["producto_xss_token"] ?? "";
-    $this->producto["idProducto"] = intval($_POST["idProducto"] ?? "");
-    $this->producto["idCategoria"] = intval($_POST["idCategoria"] ?? "");
-    $this->producto["nombre"] = strval($_POST["nombre"] ?? "");
-    $this->producto["descripcion"] = strval($_POST["descripcion"] ?? "");
-    $this->producto["precio"] = floatval($_POST["precio"] ?? "");
-    $this->producto["stock"] = intval($_POST["stock"] ?? "");
-    $this->producto["disponible"] = strval($_POST["disponible"] ?? "");
-    $this->producto["imagenUrl"] = strval($_POST["imagenUrl"] ?? "");
-
-    if (Validators::IsEmpty($this->producto["nombre"])) {
-      $errors["nombre_error"] = "El nombre del producto es requerido";
-    }
-
-    if ($this->producto["idCategoria"] <= 0) {
-      $errors["idCategoria_error"] = "La categoría es requerida";
-    }
-
-    if ($this->producto["precio"] <= 0) {
-      $errors["precio_error"] = "El precio es requerido y debe ser mayor a cero";
-    }
-
-    if ($this->producto["stock"] < 0) {
-      $errors["stock_error"] = "El stock no puede ser negativo";
-    }
-
-    if (!in_array($this->producto["disponible"], ["ACT", "INA"])) {
-      $errors["disponible_error"] = "La disponibilidad del producto es invalida";
-    }
-
-    if (count($errors) > 0) {
-      foreach ($errors as $key => $value) {
-        $this->producto[$key] = $value;
-      }
-      return false;
-    }
-    return true;
-  }
-
-  private function handlePostAction()
-  {
-    switch ($this->mode) {
-      case "INS":
-        $this->handleInsert();
-        break;
-      case "UPD":
-        $this->handleUpdate();
-        break;
-      case "DEL":
-        $this->handleDelete();
-        break;
-      default:
-        throw new \Exception("Modo invalido", 1);
-        break;
-    }
-  }
-
-  private function handleInsert()
-  {
-    $result = ProductosDao::insertProducto(
-      $this->producto["idCategoria"],
-      $this->producto["nombre"],
-      $this->producto["descripcion"],
-      $this->producto["precio"],
-      $this->producto["stock"],
-      $this->producto["disponible"],
-      $this->producto["imagenUrl"]
+    $this->getParamsFromContext();
+    $this->getParams();
+    $tmpProductos = DaoProductos::getProductos(
+      $this->partialNombre,
+      $this->idCategoria,
+      $this->disponible,
+      $this->orderBy,
+      $this->orderDescending,
+      $this->pageNumber - 1,
+      $this->itemsPerPage
     );
-    if ($result > 0) {
-      Site::redirectToWithMsg(
-        "index.php?page=Catalogo_Productos",
-        "Producto creado exitosamente"
-      );
+    $this->productos = $tmpProductos["productos"];
+    $this->productosCount = $tmpProductos["total"];
+    $this->pages = $this->productosCount > 0 ? ceil($this->productosCount / $this->itemsPerPage) : 1;
+    if ($this->pageNumber > $this->pages) {
+      $this->pageNumber = $this->pages;
     }
+    $this->setParamsToContext();
+    $this->setParamsToDataView();
+    Renderer::render("Catalogo/productos", $this->viewData);
   }
 
-  private function handleUpdate()
+  private function getParams(): void
   {
-    $result = ProductosDao::updateProducto(
-      $this->producto["idProducto"],
-      $this->producto["idCategoria"],
-      $this->producto["nombre"],
-      $this->producto["descripcion"],
-      $this->producto["precio"],
-      $this->producto["stock"],
-      $this->producto["disponible"],
-      $this->producto["imagenUrl"]
-    );
-    if ($result > 0) {
-      Site::redirectToWithMsg(
-        "index.php?page=Catalogo_Productos",
-        "Producto actualizado exitosamente"
-      );
+    $this->partialNombre = isset($_GET["partialNombre"]) ? $_GET["partialNombre"] : $this->partialNombre;
+    $this->idCategoria = isset($_GET["idCategoria"]) ? intval($_GET["idCategoria"]) : $this->idCategoria;
+    $this->disponible = isset($_GET["disponible"]) && in_array($_GET["disponible"], ['ACT', 'INA', 'TOD']) ? $_GET["disponible"] : $this->disponible;
+    if ($this->disponible === "TOD") {
+      $this->disponible = "";
     }
+    $this->orderBy = isset($_GET["orderBy"]) && in_array($_GET["orderBy"], ["idProducto", "nombre", "precio", "stock", "clear"]) ? $_GET["orderBy"] : $this->orderBy;
+    if ($this->orderBy === "clear") {
+      $this->orderBy = "";
+    }
+    $this->orderDescending = isset($_GET["orderDescending"]) ? boolval($_GET["orderDescending"]) : $this->orderDescending;
+    $this->pageNumber = isset($_GET["pageNum"]) ? intval($_GET["pageNum"]) : $this->pageNumber;
+    $this->itemsPerPage = isset($_GET["itemsPerPage"]) ? intval($_GET["itemsPerPage"]) : $this->itemsPerPage;
   }
 
-  private function handleDelete()
+  private function getParamsFromContext(): void
   {
-    $result = ProductosDao::deleteProducto($this->producto["idProducto"]);
-    if ($result > 0) {
-      Site::redirectToWithMsg(
-        "index.php?page=Catalogo_Productos",
-        "Producto Eliminado exitosamente"
-      );
-    }
+    $this->partialNombre = Context::getContextByKey("productos_partialNombre");
+    $this->idCategoria = intval(Context::getContextByKey("productos_idCategoria"));
+    $this->disponible = Context::getContextByKey("productos_disponible");
+    $this->orderBy = Context::getContextByKey("productos_orderBy");
+    $this->orderDescending = boolval(Context::getContextByKey("productos_orderDescending"));
+    $this->pageNumber = intval(Context::getContextByKey("productos_page"));
+    $this->itemsPerPage = intval(Context::getContextByKey("productos_itemsPerPage"));
+    if ($this->pageNumber < 1) $this->pageNumber = 1;
+    if ($this->itemsPerPage < 1) $this->itemsPerPage = 10;
   }
 
-  private function setViewData(): void
+  private function setParamsToContext(): void
   {
-    $this->viewData["mode"] = $this->mode;
-    $this->viewData["producto_xss_token"] = $this->producto_xss_token;
-    $this->viewData["FormTitle"] = sprintf(
-      $this->modeDescriptions[$this->mode],
-      $this->producto["idProducto"],
-      $this->producto["nombre"]
-    );
-    $this->viewData["showCommitBtn"] = $this->showCommitBtn;
-    $this->viewData["readonly"] = $this->readonly;
+    Context::setContext("productos_partialNombre", $this->partialNombre, true);
+    Context::setContext("productos_idCategoria", $this->idCategoria, true);
+    Context::setContext("productos_disponible", $this->disponible, true);
+    Context::setContext("productos_orderBy", $this->orderBy, true);
+    Context::setContext("productos_orderDescending", $this->orderDescending, true);
+    Context::setContext("productos_page", $this->pageNumber, true);
+    Context::setContext("productos_itemsPerPage", $this->itemsPerPage, true);
+  }
 
-    $disponibleKey = "disponible_" . strtolower($this->producto["disponible"]);
-    $this->producto[$disponibleKey] = "selected";
+  private function setParamsToDataView(): void
+  {
+    $this->viewData["partialNombre"] = $this->partialNombre;
+    $this->viewData["idCategoria"] = $this->idCategoria;
+    $this->viewData["disponible"] = $this->disponible;
+    $this->viewData["orderBy"] = $this->orderBy;
+    $this->viewData["orderDescending"] = $this->orderDescending;
+    $this->viewData["pageNum"] = $this->pageNumber;
+    $this->viewData["itemsPerPage"] = $this->itemsPerPage;
+    $this->viewData["productosCount"] = $this->productosCount;
+    $this->viewData["pages"] = $this->pages;
+    $this->viewData["productos"] = $this->productos;
 
-    // Categorías para el select del formulario
-    $categorias = CategoriasDao::getCategorias(true);
+    if ($this->orderBy !== "") {
+      $orderByKey = "Order" . ucfirst($this->orderBy);
+      $orderByKeyNoOrder = "OrderBy" . ucfirst($this->orderBy);
+      $this->viewData[$orderByKeyNoOrder] = true;
+      if ($this->orderDescending) {
+        $orderByKey .= "Desc";
+      }
+      $this->viewData[$orderByKey] = true;
+    }
+
+    $disponibleKey = "disponible_" . ($this->disponible === "" ? "TOD" : $this->disponible);
+    $this->viewData[$disponibleKey] = "selected";
+
+    // Categorías para el filtro (select), marcando la seleccionada
+    $categorias = DaoCategorias::getCategorias(false);
     foreach ($categorias as &$cat) {
-      $cat["selected"] = $cat["idCategoria"] == $this->producto["idCategoria"] ? "selected" : "";
+      $cat["selected"] = $cat["idCategoria"] == $this->idCategoria ? "selected" : "";
     }
     $this->viewData["categorias"] = $categorias;
 
-    $this->viewData["producto"] = $this->producto;
+    $pagination = Paging::getPagination(
+      $this->productosCount,
+      $this->itemsPerPage,
+      $this->pageNumber,
+      "index.php?page=Catalogo_Productos",
+      "Catalogo_Productos"
+    );
+    $this->viewData["pagination"] = $pagination;
   }
 }
 ?>

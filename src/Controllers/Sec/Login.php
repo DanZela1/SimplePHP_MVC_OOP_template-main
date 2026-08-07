@@ -59,6 +59,10 @@ class Login extends \Controllers\PublicController
                             \Utilities\Site::redirectTo(
                                 \Utilities\Context::getContextByKey("redirto")
                             );
+                        } elseif (\Utilities\Security::isInRol($dbUser["usercod"], "CLI")) {
+                            \Utilities\Site::redirectTo("index.php?page=Catalogo_CatalogoPublico");
+                        } elseif (\Utilities\Security::isInRol($dbUser["usercod"], "EMP")) {
+                            \Utilities\Site::redirectTo("index.php?page=Catalogo_Productos");
                         } else {
                             \Utilities\Site::redirectTo("index.php");
                         }

@@ -47,13 +47,16 @@ class Security extends \Dao\Table
         return self::obtenerRegistros($sqlstr, array());
     }
 
-    static public function newUsuario($email, $password)
+    static public function newUsuario($email, $password, $username)
     {
         if (!\Utilities\Validators::IsValidEmail($email)) {
             throw new Exception("Correo no es válido");
         }
         if (!\Utilities\Validators::IsValidPassword($password)) {
             throw new Exception("Contraseña debe ser almenos 8 caracteres, 1 número, 1 mayúscula, 1 símbolo especial");
+        }
+        if (\Utilities\Validators::IsEmpty($username)) {
+            throw new Exception("El nombre de usuario es requerido");
         }
 
         $newUser = self::_usuarioStruct();
@@ -65,7 +68,7 @@ class Security extends \Dao\Table
         unset($newUser["userpswdchg"]);
 
         $newUser["useremail"] = $email;
-        $newUser["username"] = "John Doe";
+        $newUser["username"] = $username;
         $newUser["userpswd"] = $hashedPassword;
         $newUser["userpswdest"] = Estados::ACTIVO;
         $newUser["userpswdexp"] = date('Y-m-d', time() + 7776000);  //(3*30*24*60*60) (m d h mi s)
@@ -81,8 +84,25 @@ class Security extends \Dao\Table
             now(), :userpswdest, :userpswdexp, :userest, :useractcod,
             now(), :usertipo);";
 
-        return self::executeNonQuery($sqlIns, $newUser);
+        $resultado = self::executeNonQuery($sqlIns, $newUser);
+        if ($resultado) {
+            $nuevoUserCod = self::lastInsertId();
+            self::addRolToUsuario($nuevoUserCod, "CLI");
+        }
+        return $resultado;
 
+    }
+
+    static public function addRolToUsuario($userCod, $rolescod)
+    {
+        $sqlIns = "INSERT INTO `roles_usuarios`
+            (`usercod`, `rolescod`, `roleuserest`, `roleuserfch`)
+            VALUES (:usercod, :rolescod, 'ACT', now());";
+
+        return self::executeNonQuery(
+            $sqlIns,
+            array("usercod" => $userCod, "rolescod" => $rolescod)
+        );
     }
 
     static public function getUsuarioByEmail($email)

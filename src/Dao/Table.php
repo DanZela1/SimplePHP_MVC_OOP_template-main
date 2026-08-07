@@ -105,6 +105,11 @@ abstract class Table
         return $query->execute();
     }
 
+    protected static function lastInsertId()
+    {
+        return self::getConn()->lastInsertId();
+    }
+
     protected static function _getStructFrom($structure, $data)
     {
         if (is_array($data) && is_array($structure)) {

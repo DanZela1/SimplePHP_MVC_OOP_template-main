@@ -29,6 +29,10 @@ CREATE TABLE
         PRIMARY KEY (`rolescod`)
     ) ENGINE = InnoDB DEFAULT CHARSET = utf8;
 
+INSERT INTO `roles` (`rolescod`, `rolesdsc`, `rolesest`) VALUES
+('EMP', 'Empleado', 'ACT'),
+('CLI', 'Cliente', 'ACT');
+
 CREATE TABLE
     `roles_usuarios` (
         `usercod` bigint(10) NOT NULL,
@@ -51,6 +55,10 @@ CREATE TABLE
         PRIMARY KEY (`fncod`)
     ) ENGINE = InnoDB DEFAULT CHARSET = utf8;
 
+INSERT INTO `funciones` (`fncod`, `fndsc`, `fnest`, `fntyp`) VALUES
+('Controllers\\Catalogo\\Productos', 'Catálogo de Productos (Admin)', 'ACT', 'CTR'),
+('Controllers\\Catalogo\\CatalogoPublico', 'Catálogo Público (Cliente)', 'ACT', 'CTR');
+
 CREATE TABLE
     `funciones_roles` (
         `rolescod` varchar(128) NOT NULL,
@@ -62,6 +70,10 @@ CREATE TABLE
         CONSTRAINT `funcion_rol_key` FOREIGN KEY (`rolescod`) REFERENCES `roles` (`rolescod`) ON DELETE NO ACTION ON UPDATE NO ACTION,
         CONSTRAINT `rol_funcion_key` FOREIGN KEY (`fncod`) REFERENCES `funciones` (`fncod`) ON DELETE NO ACTION ON UPDATE NO ACTION
     ) ENGINE = InnoDB DEFAULT CHARSET = utf8;
+
+INSERT INTO `funciones_roles` (`rolescod`, `fncod`, `fnrolest`) VALUES
+('EMP', 'Controllers\\Catalogo\\Productos', 'ACT'),
+('CLI', 'Controllers\\Catalogo\\CatalogoPublico', 'ACT');
 
 CREATE TABLE
     `bitacora` (
