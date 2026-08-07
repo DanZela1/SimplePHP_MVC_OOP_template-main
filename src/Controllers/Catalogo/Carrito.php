@@ -90,8 +90,8 @@ class Carrito extends PublicController
 
     $PayPalOrder = new PayPalOrder(
       "order" . time() . rand(1000, 9999),
-      "http://localhost:8080/SimplePHP_MVC_OOP_template-main/index.php?page=Checkout_Error",
-      "http://localhost:8080/SimplePHP_MVC_OOP_template-main/index.php?page=Checkout_Accept"
+      "http://localhost/negocios_web/SimplePHP_MVC_OOP_template-main/index.php?page=Checkout_Error",
+      "http://localhost/negocios_web/SimplePHP_MVC_OOP_template-main/index.php?page=Checkout_Accept"
     );
 
     foreach ($detalle as $linea) {
