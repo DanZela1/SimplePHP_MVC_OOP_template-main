@@ -2,13 +2,13 @@
 
 namespace Controllers\Catalogo;
 
-use Controllers\PublicController;
+use Controllers\PrivateController;
 use Views\Renderer;
 use Dao\Catalogo\Productos as ProductosDao;
 use Dao\Catalogo\Categorias as CategoriasDao;
 use Utilities\Cart\CarritoManager;
 
-class CatalogoPublico extends PublicController
+class CatalogoPublico extends PrivateController
 {
   private $viewData = [];
   private $partialNombre = "";
